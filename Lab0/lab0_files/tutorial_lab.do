@@ -2,7 +2,7 @@
 #add wave clk resetn a b c d sel output
 
 
-force clk 0 0, 1 50ns -repeat 100ns
+force clk 0 0, 1 50ns -repeat 50ns
 force resetn 0 0, 1 120ns
 force a 3'b000
 force b 3'b001

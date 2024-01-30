@@ -1,0 +1,9 @@
+*
+!*/
+!.gitignore
+!*.vhd
+!*.do
+!*.tv
+!*.mif
+!*.txt
+!*.pdf
