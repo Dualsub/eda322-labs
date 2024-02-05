@@ -8,7 +8,8 @@ library work;
 entity memory is
     generic (
         width : integer := 8;
-        address_size : integer := 8
+        address_size : integer := 8;
+        init_file : string := "d_memory_lab2.mif"
     );
     port (
         clk, readEn: in std_logic; 
@@ -21,7 +22,22 @@ entity memory is
     
 architecture behavorial of memory is
     type MEMORY_ARRAY is ARRAY (0 to (2**address_size) - 1) of std_logic_vector(width-1 downto 0); 
-    signal mem_array: MEMORY_ARRAY := (others => (others => '0'));
+
+    impure function init_memory_wfile(mif_file_name : in string) return MEMORY_ARRAY is
+        file mif_file : text open read_mode is mif_file_name;
+        variable mif_line : line;
+        variable temp_bv : bit_vector(DATA_WIDTH-1 downto 0);
+        variable temp_mem : MEMORY_ARRAY;
+    begin
+        for i in MEMORY_ARRAY'range loop
+            readline(mif_file, mif_line);
+            read(mif_line, temp_bv);
+            temp_mem(i) := to_stdlogicvector(temp_bv);
+        end loop;
+        return temp_mem;
+    end function;
+
+    signal mem_array: MEMORY_ARRAY := init_memory_wfile(init_file);
 begin 
     memory: process(clk)
     begin
