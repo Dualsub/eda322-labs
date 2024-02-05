@@ -56,7 +56,26 @@ begin
         if resetn = '0' then
             curr_state <= FE;
         elsif rising_edge(clk) then
-            curr_state <= next_state;
+            
+            -- Next state logic
+            case curr_state is
+                when FE => 
+                    next_state <= DE1;
+                when DE1 =>
+                    select opcode is
+                        next_state <= FE when OP_NOOP,
+                                    EX when OP_IN or OP_DS or OP_MOV or OP_JE or OP_JNE or OP_JZ or OP_CMP or OP_ROL or OP_AND or OP_ADD or OP_SUB or OP_LB,
+                                    DE2 when OP_LBI,
+                                    ME when OP_SBI or OP_SB,
+                                    FE when others;
+                when DE2 =>
+                    next_state <= EX;
+                when EX =>
+                    next_state <= FE;
+                when ME =>
+                    next_state <= FE;
+            end case;
+
         end if;
     end process;
 
