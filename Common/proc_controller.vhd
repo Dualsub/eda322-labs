@@ -51,32 +51,151 @@ architecture rtl of proc_controller is
     constant OP_LBI: std_logic_vector(3 downto 0) := "1110";
     constant OP_SBI: std_logic_vector(3 downto 0) := "1111";
 begin
+    -- Register
     process(clk, resetn)
     begin
         if resetn = '0' then
             curr_state <= FE;
         elsif rising_edge(clk) then
-            
-            -- Next state logic
-            case curr_state is
-                when FE => 
-                    next_state <= DE1;
-                when DE1 =>
-                    select opcode is
-                        next_state <= FE when OP_NOOP,
-                                    EX when OP_IN or OP_DS or OP_MOV or OP_JE or OP_JNE or OP_JZ or OP_CMP or OP_ROL or OP_AND or OP_ADD or OP_SUB or OP_LB,
-                                    DE2 when OP_LBI,
-                                    ME when OP_SBI or OP_SB,
-                                    FE when others;
-                when DE2 =>
-                    next_state <= EX;
-                when EX =>
-                    next_state <= FE;
-                when ME =>
-                    next_state <= FE;
-            end case;
-
+            curr_state <= next_state;
         end if;
     end process;
 
+    -- State transition logic
+    process(curr_state, opcode)
+    begin
+        case curr_state is
+            when FE => 
+                next_state <= DE1;
+            when DE1 =>
+                case opcode is
+                    when OP_NOOP =>
+                        next_state <= FE;
+                    when OP_IN | OP_DS | OP_MOV | OP_JE | OP_JNE | OP_JZ | OP_CMP | OP_ROL | OP_AND | OP_ADD | OP_SUB | OP_LB =>
+                        next_state <= EX;
+                    when OP_LBI =>
+                        next_state <= DE2;
+                    when OP_SBI | OP_SB =>
+                        next_state <= ME;
+                    when others =>
+                        next_state <= FE;
+                end case;
+
+            when DE2 =>
+                next_state <= EX;
+            when EX =>
+                next_state <= FE;
+            when ME =>
+                next_state <= FE;
+            when others =>
+                next_state <= FE;
+        end case;
+    end process;
+
+    -- Output logic
+    process(curr_state, opcode, master_load_enable, e_flag, z_flag)
+    begin
+        case curr_state is
+            when FE =>
+                pcSel <= '0';
+                if master_load_enable = '1' then
+                    imRead <= '1';
+                    pcLd <= '1';
+                end if;
+            when DE1 =>
+                if opcode = OP_CMP or opcode = OP_AND or opcode = OP_ADD or opcode = OP_SUB or opcode = OP_LB or opcode = OP_LBI or opcode = OP_SBI then
+                    decoEnable <= '1';
+                    decoSel <= "00";
+                    if master_load_enable = '1' then
+                        dmRead <= '1';
+                    end if;
+                end if;
+            when DE2 =>
+                if opcode = OP_LBI then
+                    decoEnable <= '1';
+                    decoSel <= "01";
+                    if master_load_enable = '1' then
+                        dmRead <= '1';
+                    end if;
+                end if;
+            when EX => 
+                -- Data movement operations
+                if opcode = OP_IN or opcode = OP_MOV then
+                    decoEnable <= '1';
+                    decoSel <= "11";
+                    accSel <= '1';
+                    if master_load_enable = '1' then
+                        accLd <= '1';
+                    end if;
+                
+                -- Jump operations
+                elsif opcode = OP_DS and master_load_enable = '1' then
+                    dsLd <= '1';
+                elsif (opcode = OP_JE and e_flag = '1') or (opcode = OP_JNE and e_flag = '0') or (opcode = OP_JZ and z_flag = '1') then
+                    decoEnable <= '1';
+                    decoSel <= "00";
+                    pcSel <= '1';
+                    if master_load_enable = '1' then
+                        pcLd <= '1';
+                    end if;
+                elsif opcode = OP_CMP then
+                    decoEnable <= '1';
+                    decoSel <= "01";
+                    if master_load_enable = '1' then
+                        flagLd <= '1';
+                    end if;
+
+                -- ALU operations
+                elsif opcode = OP_ROL then
+                    decoEnable <= '0';
+                    accSel <= '0';
+                    aluOp <= "00";
+                    if master_load_enable = '1' then
+                        flagLd <= '1';
+                        accLd <= '1';
+                    end if;
+                elsif opcode = OP_AND or opcode = OP_ADD or opcode = OP_SUB then
+                    decoEnable <= '1';
+                    decoSel <= "01";
+                    accSel <= '0';
+
+                    if opcode = OP_AND then
+                        aluOp <= "00";
+                    elsif opcode = OP_ADD then
+                        aluOp <= "01";
+                    else
+                        aluOp <= "10";
+                    end if;
+                    
+                    if master_load_enable = '1' then
+                        flagLd <= '1';
+                        accLd <= '1';
+                    end if;
+                
+                -- Memory operations
+                elsif opcode = OP_LB or opcode = OP_LBI then
+                    decoEnable <= '1';
+                    decoSel <= "01";
+                    accSel <= '1';
+                    aluOp <= "11";
+                    if master_load_enable = '1' then
+                        accLd <= '1';
+                    end if;
+                end if;
+            when ME => 
+                if opcode = OP_SBI or opcode = OP_SB then
+                    decoEnable <= '1';
+                    if opcode = OP_SBI then
+                        decoSel <= "01";
+                    else
+                        decoSel <= "00";
+                    end if;
+                    if master_load_enable = '1' then
+                        dmWrite <= '1';
+                    end if;
+                end if;
+        end case;
+
+    end process;
+                
 end rtl;

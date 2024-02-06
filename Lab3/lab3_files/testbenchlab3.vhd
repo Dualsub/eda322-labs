@@ -2,6 +2,8 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
+library work;
+
 entity EDA322_processor_tb is
 end entity EDA322_processor_tb;
 
@@ -45,7 +47,7 @@ begin
     master_load_enable <= not master_load_enable after c_MLE_PERIOD/2;
     
     CHACC_dut : component EDA322_processor
-        generic map(dInitFile => "d_memory_lab3.mif", iInitFile => "i_memory_lab3.mif")
+        generic map(dInitFile => "Lab3/lab3_files/d_memory_lab3.mif", iInitFile => "Lab3/lab3_files/i_memory_lab3.mif")
         port map(
             clk                 => clk,
             resetn              => resetn,

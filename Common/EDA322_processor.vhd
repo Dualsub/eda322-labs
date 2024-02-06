@@ -1,6 +1,8 @@
 library ieee;
 use ieee.std_logic_1164.all;
 
+library work;
+
 entity EDA322_processor is
     generic (dInitFile : string := "d_memory_lab2.mif";
              iInitFile : string := "i_memory_lab2.mif");
@@ -50,11 +52,12 @@ architecture structural of EDA322_processor is
     signal imDataOut: std_logic_vector(11 downto 0);
     signal dmDataOut: std_logic_vector(7 downto 0);
     signal accOut: std_logic_vector(7 downto 0);
+    signal accIn: std_logic_vector(7 downto 0);
     signal internalBusOut: std_logic_vector(7 downto 0);
 begin
 
     ---- Controller
-    controller_inst: entity work.mock_controller port map (
+    controller_inst: entity work.proc_controller port map (
         clk => clk,
         resetn => resetn,
         master_load_enable => master_load_enable,
@@ -91,19 +94,21 @@ begin
     busOut2seg <= internalBusOut;
 
     ---- Instruction memory
-    im_inst: entity work.memory generic map (12)
+    im_inst: entity work.memory generic map (12, 8, iInitFile)
     port map (
         clk => clk,
         readEn => imRead,
+	    writeEn => '0',
         address => pcOut,
         dataOut => imDataOut,
         dataIn => (others => 'X')
     );
 
     opcode <= imDataOut(11 downto 8);
+
     
     ---- Data memory
-    dm_inst: entity work.memory generic map (8)
+    dm_inst: entity work.memory generic map (8, 8, dInitFile)
     port map (
         clk => clk,
         readEn => dmRead,
@@ -118,8 +123,8 @@ begin
     ---- Program counter
 
     with internalBusOut(7) select
-    jumpAddrB <= '0' & internalBusOut(6 downto 0) when '1',
-                '1' & (not internalBusOut(6 downto 0)) when '0',
+    jumpAddrB <= '0' & internalBusOut(6 downto 0) when '0',
+                '1' & (not internalBusOut(6 downto 0)) when '1',
                 "00000000" when others;     
 
     jump_addr_inst: entity work.rca port map (
@@ -155,7 +160,7 @@ begin
         dataOut => pcOut
     );
 
-    pc2seg <= pcOut;
+    pc2seg <= nextPc;
 
     ---- ALU
 
@@ -176,7 +181,7 @@ begin
         s => accSel,
         i0 => aluOut,
         i1 => internalBusOut,
-        o => acc2seg
+        o => accIn
     );
 
     acc_inst: entity work.reg generic map (8)
@@ -184,9 +189,11 @@ begin
         clk => clk,
         resetn => resetn,
         loadEnable => accLd,
-        dataIn => accOut,
+        dataIn => accIn,
         dataOut => accOut
     );
+
+    acc2seg <= accOut;
 
     ---- Flags
 
