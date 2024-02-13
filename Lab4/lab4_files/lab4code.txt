@@ -1,0 +1,57 @@
+# The program does not perform any meaningful task. 
+# Instead it uses all the available operations of the processor to validate the correct operation of the processor.
+# If you need to debug the processor, follow each operation one by one, examine the value of the system 
+#    during each stage, and the value of the program counter. Be careful with the branch instructions.  
+# Bellow you can find each executed operation, and their address in the instruction memory, and some comments
+#    for the executed program. You can find specific details about each instruction in the processor's documentation 
+# All the address are represented using decimal numbers. 
+
+
+# Read from the external input and check that the ACC has the correct value. 
+00. IN         
+01. CMP 1
+02. JE 3
+03. JNE -3
+04. NOOP
+05. NOOP
+
+# Validate the ALU using all of its components
+# First load a value to the ACC, and then use ROL, AND and SUB
+# Finally, compare with the expected value
+
+06. MOV 240
+07. ROL
+08. AND 2
+09. DS
+10. ADD 3
+11. DS
+12. SUB 4
+13. DS
+14. JZ 2
+15. NOOP
+16. NOOP
+
+# Validate the load and store instructions by writting to- and reading from a memory address.
+# Once again, compare with the expected values
+
+17. MOV 128
+18. DS
+19. SB 6
+20. LB 6
+21. DS
+22. CMP 7
+23. JE 2
+24. NOOP
+25. NOOP
+26. MOV 6
+27. SBI 6
+28. LBI 6
+29. DS
+30. CMP 7
+31. JE 2
+32. NOOP
+33. NOOP
+
+# If the program reaches this point, it starts an endleses loop between addresses 34 and 35
+34. JE -1
+35. JNE -2

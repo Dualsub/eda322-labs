@@ -4,6 +4,7 @@
 !*.vhd
 !*.do
 !*.tv
+!*.trace
 !*.mif
 !*.mpf
 !*.txt
